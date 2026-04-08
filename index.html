@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional Resume Builder</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+                'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica',
+                'Arial', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .watermark {
+            position: fixed;
+            bottom: 10px;
+            right: 20px;
+            font-size: 12px;
+            color: rgba(100, 100, 100, 0.5);
+            z-index: 10;
+            animation: pulse-watermark 2s ease-in-out infinite;
+            user-select: none;
+            pointer-events: none;
+        }
+        
+        @keyframes pulse-watermark {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 0.8; }
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(-20px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .dark .glass-effect {
+            background: rgba(30, 30, 30, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .scroll-smooth {
+            scroll-behavior: smooth;
+        }
+        
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.05);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 0, 0, 0.3);
+        }
+        
+        .dark ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .dark ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .dark ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-slate-900 transition-colors" id="root">
+    <div id="app"></div>
+    
+    <div class="watermark">
+        ✨ Designed by Sunit Katuwal (BSc CSIT)
+    </div>
+
+    <script>
+        // Resume Data
+        let resumeData = {
+            personal: { fullName: 'John Doe', jobTitle: 'Senior Developer', email: 'john@example.com', phone: '+1-234-567-8900', location: 'New York, USA' },
+            objective: { summary: 'Experienced professional seeking challenging roles to leverage my expertise in web development and team leadership.' },
+            experience: [{ jobTitle: 'Senior Developer', companyName: 'Tech Corp', startDate: '2020', endDate: 'Present', description: 'Led development of key features and mentored junior developers' }],
+            education: [{ degree: 'Bachelor', fieldOfStudy: 'Computer Science', schoolName: 'University of Technology', graduationYear: '2020' }],
+            skills: [{ skillName: 'React' }, { skillName: 'JavaScript' }, { skillName: 'Node.js' }, { skillName: 'Tailwind CSS' }]
+        };
+        
+        let selectedTemplate = 'modern';
+        let darkMode = false;
+
+        // Template Renderers
+        const templates = {
+            modern: (data) => `
+                <div class="w-full h-full bg-white p-8 text-gray-900">
+                    <div class="border-b-4 border-blue-600 pb-6 mb-6">
+                        <h1 class="text-4xl font-bold text-blue-600">${data.personal.fullName || 'Your Name'}</h1>
+                        <p class="text-gray-600 mt-2">${data.personal.jobTitle || 'Professional Title'}</p>
+                        <div class="flex gap-4 mt-3 text-sm text-gray-700">
+                            ${data.personal.email ? `<span>📧 ${data.personal.email}</span>` : ''}
+                            ${data.personal.phone ? `<span>📱 ${data.personal.phone}</span>` : ''}
+                            ${data.personal.location ? `<span>📍 ${data.personal.location}</span>` : ''}
+                        </div>
+                    </div>
+
+                    ${data.objective.summary ? `<div class="mb-6">
+                        <h2 class="text-xl font-bold text-blue-600 mb-2">Objective</h2>
+                        <p class="text-gray-700 text-sm">${data.objective.summary}</p>
+                    </div>` : ''}
+
+                    ${data.experience && data.experience.length > 0 ? `<div class="mb-6">
+                        <h2 class="text-xl font-bold text-blue-600 mb-3">Experience</h2>
+                        ${data.experience.map(exp => `<div class="mb-3">
+                            <div class="flex justify-between">
+                                <p class="font-bold text-gray-900">${exp.jobTitle || 'Position'}</p>
+                                <p class="text-gray-600 text-sm">${exp.startDate} - ${exp.endDate}</p>
+                            </div>
+                            <p class="text-gray-700 text-sm">${exp.companyName || 'Company'}</p>
+                            ${exp.description ? `<p class="text-gray-600 text-sm mt-1">${exp.description}</p>` : ''}
+                        </div>`).join('')}
+                    </div>` : ''}
+
+                    ${data.education && data.education.length > 0 ? `<div class="mb-6">
+                        <h2 class="text-xl font-bold text-blue-600 mb-3">Education</h2>
+                        ${data.education.map(edu => `<div class="mb-2">
+                            <p class="font-bold text-gray-900">${edu.degree || 'Degree'} in ${edu.fieldOfStudy || 'Field'}</p>
+                            <p class="text-gray-700 text-sm">${edu.schoolName || 'Institution'} - ${edu.graduationYear || 'Year'}</p>
+                        </div>`).join('')}
+                    </div>` : ''}
+
+                    ${data.skills && data.skills.length > 0 ? `<div class="mb-6">
+                        <h2 class="text-xl font-bold text-blue-600 mb-3">Skills</h2>
+                        <div class="flex flex-wrap gap-2">
+                            ${data.skills.map(skill => `<span class="bg-blue-100 text-blue-700 px-3 py-1 rounded text-sm">${skill.skillName || 'Skill'}</span>`).join('')}
+                        </div>
+                    </div>` : ''}
+                </div>
+            `,
+            minimal: (data) => `
+                <div class="w-full h-full bg-white p-10 text-gray-950 font-serif">
+                    <div class="mb-6 pb-4 border-b border-gray-300">
+                        <h1 class="text-3xl font-bold">${data.personal.fullName || 'Your Name'}</h1>
+                        <p class="text-gray-600 text-sm mt-1">${data.personal.email} | ${data.personal.phone}</p>
+                    </div>
+                    ${data.experience && data.experience.length > 0 ? `<div class="mb-4">
+                        <h2 class="text-lg font-bold mb-2">EXPERIENCE</h2>
+                        ${data.experience.map(exp => `<div class="mb-3">
+                            <p class="font-bold">${exp.jobTitle} • ${exp.companyName}</p>
+                            <p class="text-gray-600 text-sm">${exp.startDate} – ${exp.endDate}</p>
+                        </div>`).join('')}
+                    </div>` : ''}
+                </div>
+            `,
+            elegant: (data) => `
+                <div class="w-full h-full bg-gradient-to-br from-gray-50 to-gray-100 p-8">
+                    <div class="flex h-full">
+                        <div class="w-1/3 bg-gradient-to-b from-gray-800 to-gray-900 text-white p-6 rounded-l">
+                            <h1 class="text-2xl font-bold mb-1">${data.personal.fullName || 'Name'}</h1>
+                            <p class="text-amber-400 text-sm mb-6">${data.personal.jobTitle || 'Title'}</p>
+                            ${data.skills && data.skills.length > 0 ? `<div class="mb-6">
+                                <h3 class="font-bold text-amber-400 mb-2 text-sm">SKILLS</h3>
+                                ${data.skills.map(s => `<p class="text-sm text-gray-300">${s.skillName}</p>`).join('')}
+                            </div>` : ''}
+                        </div>
+                        <div class="w-2/3 bg-white p-6">
+                            ${data.objective.summary ? `<div class="mb-6">
+                                <h2 class="font-bold text-gray-800 mb-2">ABOUT</h2>
+                                <p class="text-sm text-gray-700">${data.objective.summary}</p>
+                            </div>` : ''}
+                        </div>
+                    </div>
+                </div>
+            `
+        };
+
+        // Initialize
+        function init() {
+            updatePreview();
+            setupEventListeners();
+        }
+
+        function updatePreview() {
+            const preview = document.getElementById('preview');
+            const template = templates[selectedTemplate];
+            preview.innerHTML = template(resumeData);
+        }
+
+        function setupEventListeners() {
+            // Personal Info
+            document.getElementById('fullName').addEventListener('input', (e) => {
+                resumeData.personal.fullName = e.target.value;
+                updatePreview();
+            });
+            document.getElementById('jobTitle').addEventListener('input', (e) => {
+                resumeData.personal.jobTitle = e.target.value;
+                updatePreview();
+            });
+            document.getElementById('email').addEventListener('input', (e) => {
+                resumeData.personal.email = e.target.value;
+                updatePreview();
+            });
+            document.getElementById('phone').addEventListener('input', (e) => {
+                resumeData.personal.phone = e.target.value;
+                updatePreview();
+            });
+
+            // Template Select
+            document.getElementById('templateSelect').addEventListener('change', (e) => {
+                selectedTemplate = e.target.value;
+                updatePreview();
+            });
+
+            // Export buttons
+            document.getElementById('exportPDF').addEventListener('click', exportPDF);
+            document.getElementById('exportJSON').addEventListener('click', exportJSON);
+            document.getElementById('toggleDark').addEventListener('click', toggleDarkMode);
+        }
+
+        function exportPDF() {
+            const element = document.getElementById('preview');
+            const opt = {
+                margin: 10,
+                filename: 'resume.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
+            };
+            html2pdf().set(opt).from(element).save();
+        }
+
+        function exportJSON() {
+            const dataStr = JSON.stringify(resumeData, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'resume.json';
+            link.click();
+        }
+
+        function toggleDarkMode() {
+            darkMode = !darkMode;
+            document.documentElement.classList.toggle('dark', darkMode);
+        }
+
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

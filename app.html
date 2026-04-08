@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional Resume Builder</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        .watermark {
+            position: fixed;
+            bottom: 15px;
+            right: 20px;
+            font-size: 12px;
+            color: rgba(100, 100, 100, 0.6);
+            z-index: 10;
+            animation: pulse 2s ease-in-out infinite;
+            user-select: none;
+            pointer-events: none;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 0.9; }
+        }
+        
+        input, select {
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <!-- Header -->
+    <header class="sticky top-0 z-50 bg-white shadow">
+        <div class="max-w-7xl mx-auto px-4 py-4">
+            <div class="flex justify-between items-center gap-4 flex-wrap">
+                <h1 class="text-2xl font-bold text-blue-600">📄 Resume Builder</h1>
+                <div class="flex gap-2">
+                    <button id="exportPDF" class="px-3 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition">📥 PDF</button>
+                    <button id="exportJSON" class="px-3 py-2 bg-green-600 text-white rounded text-sm hover:bg-green-700 transition">💾 JSON</button>
+                    <button id="toggleDark" class="px-3 py-2 bg-gray-600 text-white rounded text-sm hover:bg-gray-700 transition">🌙 Dark</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 py-6">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Form Section -->
+            <div class="lg:col-span-1 space-y-4">
+                <div class="bg-white p-4 rounded-lg shadow">
+                    <h2 class="font-bold text-lg mb-4">Personal Info</h2>
+                    <input type="text" id="fullName" placeholder="Full Name" class="w-full p-2 border rounded mb-3" />
+                    <input type="text" id="jobTitle" placeholder="Job Title" class="w-full p-2 border rounded mb-3" />
+                    <input type="email" id="email" placeholder="Email" class="w-full p-2 border rounded mb-3" />
+                    <input type="text" id="phone" placeholder="Phone" class="w-full p-2 border rounded" />
+                </div>
+
+                <div class="bg-white p-4 rounded-lg shadow">
+                    <h2 class="font-bold text-lg mb-4">Template</h2>
+                    <select id="templateSelect" class="w-full p-2 border rounded">
+                        <option value="modern">Modern</option>
+                        <option value="minimal">Minimal</option>
+                        <option value="elegant">Elegant</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Preview Section -->
+            <div class="lg:col-span-2">
+                <div id="preview" class="bg-white rounded-lg shadow h-[800px] overflow-auto border"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="watermark">
+        ✨ Designed by Sunit Katuwal (BSc CSIT)
+    </div>
+
+    <script>
+        // Resume Data
+        let resumeData = {
+            personal: { 
+                fullName: 'John Doe', 
+                jobTitle: 'Senior Developer', 
+                email: 'john@example.com', 
+                phone: '+1 (555) 123-4567', 
+                location: 'New York, USA' 
+            },
+            objective: { 
+                summary: 'Experienced software engineer with passion for creating elegant solutions to complex problems. Seeking roles that challenge me to innovate and lead development efforts.' 
+            },
+            experience: [
+                { 
+                    jobTitle: 'Senior Developer', 
+                    companyName: 'Tech Corp', 
+                    startDate: '2020', 
+                    endDate: 'Present', 
+                    description: 'Led development of key features and mentored junior developers. Improved system performance by 40%.' 
+                }
+            ],
+            education: [
+                { 
+                    degree: 'Bachelor of Science', 
+                    fieldOfStudy: 'Computer Science', 
+                    schoolName: 'University of Technology', 
+                    graduationYear: '2020' 
+                }
+            ],
+            skills: [
+                { skillName: 'React' }, 
+                { skillName: 'JavaScript' }, 
+                { skillName: 'Node.js' }, 
+                { skillName: 'Tailwind CSS' },
+                { skillName: 'MongoDB' }
+            ]
+        };
+        
+        let selectedTemplate = 'modern';
+
+        // Template Renderers
+        const templates = {
+            modern: (data) => `
+                <div class="w-full bg-white p-8 text-gray-900 min-h-full">
+                    <div class="border-b-4 border-blue-600 pb-6 mb-6">
+                        <h1 class="text-4xl font-bold text-blue-600">${data.personal.fullName || 'Your Name'}</h1>
+                        <p class="text-gray-600 mt-2 text-lg">${data.personal.jobTitle || 'Professional Title'}</p>
+                        <div class="flex gap-4 mt-3 text-sm text-gray-700 flex-wrap">
+                            ${data.personal.email ? `<span>📧 ${data.personal.email}</span>` : ''}
+                            ${data.personal.phone ? `<span>📱 ${data.personal.phone}</span>` : ''}
+                            ${data.personal.location ? `<span>📍 ${data.personal.location}</span>` : ''}
+                        </div>
+                    </div>
+
+                    ${data.objective && data.objective.summary ? `<div class="mb-6">
+                        <h2 class="text-xl font-bold text-blue-600 mb-2">Professional Summary</h2>
+                        <p class="text-gray-700 text-sm leading-relaxed">${data.objective.summary}</p>
+                    </div>` : ''}
+
+                    ${data.experience && data.experience.length > 0 ? `<div class="mb-6">
+                        <h2 class="text-xl font-bold text-blue-600 mb-3">Experience</h2>
+                        ${data.experience.map(exp => `<div class="mb-4">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="font-bold text-gray-900">${exp.jobTitle || 'Position'}</p>
+                                    <p class="text-gray-700 text-sm">${exp.companyName || 'Company'}</p>
+                                </div>
+                                <p class="text-gray-600 text-sm">${exp.startDate} - ${exp.endDate}</p>
+                            </div>
+                            ${exp.description ? `<p class="text-gray-600 text-sm mt-2">${exp.description}</p>` : ''}
+                        </div>`).join('')}
+                    </div>` : ''}
+
+                    ${data.education && data.education.length > 0 ? `<div class="mb-6">
+                        <h2 class="text-xl font-bold text-blue-600 mb-3">Education</h2>
+                        ${data.education.map(edu => `<div class="mb-3">
+                            <p class="font-bold text-gray-900">${edu.degree || 'Degree'}</p>
+                            <p class="text-gray-700 text-sm">${edu.fieldOfStudy || 'Field'} - ${edu.schoolName || 'Institution'}</p>
+                            <p class="text-gray-600 text-sm">${edu.graduationYear || 'Year'}</p>
+                        </div>`).join('')}
+                    </div>` : ''}
+
+                    ${data.skills && data.skills.length > 0 ? `<div class="mb-6">
+                        <h2 class="text-xl font-bold text-blue-600 mb-3">Skills</h2>
+                        <div class="flex flex-wrap gap-2">
+                            ${data.skills.map(skill => `<span class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm">${skill.skillName || 'Skill'}</span>`).join('')}
+                        </div>
+                    </div>` : ''}
+                </div>
+            `,
+            minimal: (data) => `
+                <div class="w-full bg-white p-10 text-gray-900 font-serif min-h-full">
+                    <div class="mb-8 pb-6 border-b-2 border-gray-400">
+                        <h1 class="text-4xl font-bold mb-2">${data.personal.fullName || 'Your Name'}</h1>
+                        <p class="text-gray-700 text-sm">${data.personal.email} | ${data.personal.phone}</p>
+                    </div>
+                    
+                    ${data.experience && data.experience.length > 0 ? `<div class="mb-8">
+                        <h2 class="text-lg font-bold mb-4 uppercase tracking-widest">Experience</h2>
+                        ${data.experience.map(exp => `<div class="mb-4">
+                            <p class="font-bold text-gray-900">${exp.jobTitle}</p>
+                            <p class="text-gray-700 text-sm">${exp.companyName} | ${exp.startDate} – ${exp.endDate}</p>
+                            ${exp.description ? `<p class="text-gray-700 text-sm mt-2">${exp.description}</p>` : ''}
+                        </div>`).join('')}
+                    </div>` : ''}
+
+                    ${data.education && data.education.length > 0 ? `<div class="mb-8">
+                        <h2 class="text-lg font-bold mb-4 uppercase tracking-widest">Education</h2>
+                        ${data.education.map(edu => `<div class="mb-4">
+                            <p class="font-bold text-gray-900">${edu.degree}</p>
+                            <p class="text-gray-700 text-sm">${edu.fieldOfStudy} | ${edu.schoolName}</p>
+                        </div>`).join('')}
+                    </div>` : ''}
+
+                    ${data.skills && data.skills.length > 0 ? `<div>
+                        <h2 class="text-lg font-bold mb-4 uppercase tracking-widest">Skills</h2>
+                        <p class="text-gray-700 text-sm">${data.skills.map(s => s.skillName).join(' • ')}</p>
+                    </div>` : ''}
+                </div>
+            `,
+            elegant: (data) => `
+                <div class="w-full bg-gradient-to-br from-gray-50 to-gray-100 min-h-full flex">
+                    <div class="w-1/3 bg-gradient-to-b from-slate-800 to-slate-900 text-white p-8">
+                        <h1 class="text-3xl font-bold mb-2">${data.personal.fullName || 'Name'}</h1>
+                        <p class="text-amber-400 text-sm mb-8 font-semibold">${data.personal.jobTitle || 'Title'}</p>
+                        
+                        <div class="mb-8">
+                            <p class="text-xs text-gray-400 mb-2 uppercase tracking-widest">Contact</p>
+                            ${data.personal.email ? `<p class="text-sm text-gray-300 mb-1">${data.personal.email}</p>` : ''}
+                            ${data.personal.phone ? `<p class="text-sm text-gray-300">${data.personal.phone}</p>` : ''}
+                        </div>
+
+                        ${data.skills && data.skills.length > 0 ? `<div>
+                            <p class="text-xs text-gray-400 mb-3 uppercase tracking-widest">Skills</p>
+                            ${data.skills.map(s => `<p class="text-sm text-gray-300 mb-1">${s.skillName}</p>`).join('')}
+                        </div>` : ''}
+                    </div>
+                    <div class="w-2/3 bg-white p-8">
+                        ${data.objective && data.objective.summary ? `<div class="mb-8">
+                            <h2 class="font-bold text-gray-800 mb-2 uppercase text-sm tracking-wide">About</h2>
+                            <p class="text-sm text-gray-700 leading-relaxed">${data.objective.summary}</p>
+                        </div>` : ''}
+
+                        ${data.experience && data.experience.length > 0 ? `<div>
+                            <h2 class="font-bold text-gray-800 mb-4 uppercase text-sm tracking-wide">Experience</h2>
+                            ${data.experience.map(exp => `
+                                <div class="mb-4 pb-4 border-b border-gray-200">
+                                    <p class="font-bold text-gray-800">${exp.jobTitle}</p>
+                                    <p class="text-sm text-gray-600">${exp.companyName}</p>
+                                    <p class="text-xs text-gray-500 mt-1">${exp.startDate} - ${exp.endDate}</p>
+                                </div>
+                            `).join('')}
+                        </div>` : ''}
+                    </div>
+                </div>
+            `
+        };
+
+        // Initialize
+        function init() {
+            // Set initial values
+            document.getElementById('fullName').value = resumeData.personal.fullName;
+            document.getElementById('jobTitle').value = resumeData.personal.jobTitle;
+            document.getElementById('email').value = resumeData.personal.email;
+            document.getElementById('phone').value = resumeData.personal.phone;
+            
+            updatePreview();
+            setupEventListeners();
+        }
+
+        function updatePreview() {
+            const preview = document.getElementById('preview');
+            const template = templates[selectedTemplate];
+            if (template) {
+                preview.innerHTML = template(resumeData);
+            }
+        }
+
+        function setupEventListeners() {
+            // Personal Info inputs
+            document.getElementById('fullName').addEventListener('input', (e) => {
+                resumeData.personal.fullName = e.target.value;
+                updatePreview();
+            });
+            
+            document.getElementById('jobTitle').addEventListener('input', (e) => {
+                resumeData.personal.jobTitle = e.target.value;
+                updatePreview();
+            });
+            
+            document.getElementById('email').addEventListener('input', (e) => {
+                resumeData.personal.email = e.target.value;
+                updatePreview();
+            });
+            
+            document.getElementById('phone').addEventListener('input', (e) => {
+                resumeData.personal.phone = e.target.value;
+                updatePreview();
+            });
+
+            // Template selection
+            document.getElementById('templateSelect').addEventListener('change', (e) => {
+                selectedTemplate = e.target.value;
+                updatePreview();
+            });
+
+            // Export buttons
+            document.getElementById('exportPDF').addEventListener('click', exportPDF);
+            document.getElementById('exportJSON').addEventListener('click', exportJSON);
+            document.getElementById('toggleDark').addEventListener('click', toggleDarkMode);
+        }
+
+        function exportPDF() {
+            const element = document.getElementById('preview');
+            const opt = {
+                margin: 5,
+                filename: 'resume.pdf',
+                image: { type: 'jpeg', quality: 0.99 },
+                html2canvas: { scale: 2, logging: false, useCORS: true },
+                jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
+            };
+            html2pdf().set(opt).from(element).save();
+        }
+
+        function exportJSON() {
+            const dataStr = JSON.stringify(resumeData, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'resume.json';
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function toggleDarkMode() {
+            document.documentElement.classList.toggle('dark');
+        }
+
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
